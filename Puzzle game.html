@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>拼图抽奖游戏</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            color: #333;
+        }
+        
+        .container {
+            display: flex;
+            max-width: 1200px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+        }
+        
+        /* 左侧抽奖区域 */
+        .left-panel {
+            flex: 1;
+            padding: 30px;
+            border-right: 1px solid #eee;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .game-title {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #764ba2;
+            font-size: 28px;
+            font-weight: 700;
+        }
+        
+        /* --- 修改点 1: 调整拼图容器为竖版 --- */
+        .puzzle-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr); /* 2列 */
+            grid-template-rows: repeat(3, 1fr);    /* 3行 */
+            gap: 5px;
+            width: 100%;
+            max-width: 300px; /* 宽度变小 */
+            height: 400px;    /* 高度变大 */
+            margin: 0 auto 30px;
+            border: 2px solid #764ba2;
+            border-radius: 10px;
+            overflow: hidden;
+            background: #f8f9fa;
+        }
+        
+        /* --- 修改点 2: 调整拼图块的背景尺寸 --- */
+        .puzzle-slot {
+            background-size: 300px 400px; /* 匹配新的容器尺寸 */
+            border: 1px dashed #adb5bd;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: #6c757d;
+        }
+        
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .nickname-input {
+            padding: 12px;
+            border: 2px solid #764ba2;
+            border-radius: 8px;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+        
+        .nickname-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+        }
+        
+        .draw-btn {
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 10px rgba(118, 75, 162, 0.3);
+        }
+        
+        .draw-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(118, 75, 162, 0.4);
+        }
+        
+        .draw-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .restart-btn {
+            padding: 12px;
+            background: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .restart-btn:hover {
+            background: #5a6268;
+        }
+        
+        .import-export-btn {
+            padding: 12px;
+            background: #17a2b8;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .import-export-btn:hover {
+            background: #138496;
+        }
+        
+        .stats {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: auto;
+        }
+        
+        .stats h3 {
+            margin-bottom: 15px;
+            color: #764ba2;
+            text-align: center;
+        }
+        
+        .stats p {
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .stats span {
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        /* 右侧图片选择区域 */
+        .right-panel {
+            flex: 0 0 400px;
+            padding: 30px;
+            background: #f8f9fa;
+            overflow-y: auto;
+        }
+        
+        .image-selection {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+        
+        .image-option {
+            position: relative;
+            border-radius: 10px;
+            overflow: hidden;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s;
+            aspect-ratio: 1/1;
+        }
+        
+        .image-option:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .image-option.selected {
+            box-shadow: 0 0 0 3px #764ba2, 0 5px 15px rgba(118, 75, 162, 0.4);
+        }
+        
+        .image-option.completed {
+            cursor: default;
+            opacity: 0.8;
+        }
+        
+        .image-preview {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: blur(15px);
+            transition: filter 0.5s;
+        }
+        
+        .image-number {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(118, 75, 162, 0.8);
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+        }
+        
+        .completed-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #28a745;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .result-display {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e2e6ea;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 500;
+            display: none;
+        }
+        
+        .preview-mode {
+            margin-top: 15px;
+            padding: 10px;
+            background: #fff3cd;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 500;
+            color: #856404;
+            display: none;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 900px) {
+            .container {
+                flex-direction: column;
+            }
+            
+            .right-panel {
+                flex: none;
+                width: 100%;
+            }
+            
+            .image-selection {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 左侧抽奖区域 -->
+        <div class="left-panel">
+            <h1 class="game-title">拼图抽奖游戏</h1>
+            
+            <div class="puzzle-container">
+                <!-- 拼图块将由JavaScript动态生成 -->
+            </div>
+            
+            <div class="controls">
+                <input type="text" class="nickname-input" id="nickname-input" placeholder="请输入昵称" maxlength="20">
+                <button class="draw-btn" id="draw-button">开始抽奖</button>
+                <button class="restart-btn" id="restart-button">重新开始游戏</button>
+                <button class="import-export-btn" id="export-button">导出进度</button>
+                <button class="import-export-btn" id="import-button">导入进度</button>
+                <input type="file" id="import-file" accept=".json" style="display: none;">
+            </div>
+            
+            <div class="preview-mode" id="preview-mode">
+                预览模式：此图片已完成，不能再次抽奖
+            </div>
+            
+            <div class="result-display" id="result-display"></div>
+            
+            <div class="stats">
+                <h3>游戏统计</h3>
+                <p>已完成图片: <span id="completed-count">0</span></p>
+                <p>总拼图块: <span id="total-pieces">6</span></p>
+                <p>剩余拼图: <span id="remaining-pieces">6</span></p>
+            </div>
+        </div>
+        
+        <!-- 右侧图片选择区域 -->
+        <div class="right-panel">
+            <h2 style="text-align: center; margin-bottom: 20px; color: #764ba2;">选择图片</h2>
+            <div class="image-selection">
+                <!-- 图片选项将由JavaScript动态生成 -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // --- 图片配置 ---
+            // 确保图片文件是 .png 格式
+            const IMAGE_PATHS = [
+                'image-1.jpg',
+                'image-2.jpg',
+                'image-3.jpg',
+                'image-4.jpg',
+                'image-5.jpg',
+                'image-6.jpg'
+            ];
+
+            // 游戏配置
+            const IMAGE_COUNT = IMAGE_PATHS.length;
+            const PUZZLE_PIECES = 6;
+            const SAVE_VERSION = 1;
+            
+            // 游戏状态
+            let selectedImage = null;
+            let collectedPieces = [];
+            let availablePieces = [];
+            let completedImages = [];
+            let collectedPiecesPerImage = Array.from({length: IMAGE_COUNT}, () => []);
+            let isPreviewMode = false;
+            let userNickname = '';
+            
+            // DOM元素
+            const puzzleContainer = document.querySelector('.puzzle-container');
+            const imageSelection = document.querySelector('.image-selection');
+            const drawButton = document.getElementById('draw-button');
+            const restartButton = document.getElementById('restart-button');
+            const exportButton = document.getElementById('export-button');
+            const importButton = document.getElementById('import-button');
+            const importFile = document.getElementById('import-file');
+            const nicknameInput = document.getElementById('nickname-input');
+            const resultDisplay = document.getElementById('result-display');
+            const previewMode = document.getElementById('preview-mode');
+            const completedCountEl = document.getElementById('completed-count');
+            const remainingPiecesEl = document.getElementById('remaining-pieces');
+            
+            // 初始化游戏
+            function initGame() {
+                createPuzzleSlots();
+                createImageOptions();
+                
+                drawButton.addEventListener('click', drawLottery);
+                restartButton.addEventListener('click', restartGame);
+                exportButton.addEventListener('click', exportProgress);
+                importButton.addEventListener('click', () => importFile.click());
+                importFile.addEventListener('change', importProgress);
+                nicknameInput.addEventListener('input', function() {
+                    userNickname = this.value.trim();
+                });
+                
+                selectedImage = null;
+                collectedPieces = [];
+                availablePieces = Array.from({length: PUZZLE_PIECES}, (_, i) => i);
+                collectedPiecesPerImage = Array.from({length: IMAGE_COUNT}, () => []);
+                completedImages = [];
+                isPreviewMode = false;
+                userNickname = '';
+                nicknameInput.value = '';
+                
+                updateStats();
+                resultDisplay.style.display = 'none';
+                previewMode.style.display = 'none';
+                drawButton.disabled = false;
+            }
+            
+            function createPuzzleSlots() {
+                puzzleContainer.innerHTML = '';
+                for (let i = 0; i < PUZZLE_PIECES; i++) {
+                    const slot = document.createElement('div');
+                    slot.className = 'puzzle-slot';
+                    slot.dataset.pieceId = i;
+                    puzzleContainer.appendChild(slot);
+                }
+            }
+            
+            function createImageOptions() {
+                imageSelection.innerHTML = '';
+                for (let i = 1; i <= IMAGE_COUNT; i++) {
+                    const option = document.createElement('div');
+                    option.className = 'image-option';
+                    option.dataset.imageId = i;
+                    
+                    const img = document.createElement('img');
+                    img.className = 'image-preview';
+                    img.src = IMAGE_PATHS[i-1];
+                    img.alt = `图片${i}`;
+                    
+                    const number = document.createElement('div');
+                    number.className = 'image-number';
+                    number.textContent = i;
+                    
+                    option.appendChild(img);
+                    option.appendChild(number);
+                    
+                    option.addEventListener('click', function() {
+                        selectImage(parseInt(this.dataset.imageId));
+                    });
+                    
+                    imageSelection.appendChild(option);
+                }
+            }
+            
+            function selectImage(imageId) {
+                document.querySelectorAll('.image-option.selected').forEach(img => {
+                    img.classList.remove('selected');
+                });
+                
+                const selectedOption = document.querySelector(`.image-option[data-image-id="${imageId}"]`);
+                selectedOption.classList.add('selected');
+                
+                selectedImage = imageId;
+                collectedPieces = collectedPiecesPerImage[imageId - 1] || [];
+                availablePieces = Array.from({length: PUZZLE_PIECES}, (_, i) => i)
+                    .filter(piece => !collectedPieces.includes(piece));
+                
+                isPreviewMode = completedImages.includes(imageId);
+                
+                updatePuzzleDisplay();
+                updateStats();
+                resultDisplay.style.display = 'none';
+                
+                if (isPreviewMode) {
+                    previewMode.style.display = 'block';
+                    drawButton.disabled = true;
+                    showResult(`图片${imageId}已完成，可以预览但不能再次抽奖`);
+                } else {
+                    previewMode.style.display = 'none';
+                    drawButton.disabled = false;
+                    showResult(`已选择图片${imageId}，请点击"开始抽奖"获取拼图块！`);
+                }
+            }
+            
+            function updatePuzzleDisplay() {
+                document.querySelectorAll('.puzzle-slot').forEach(slot => {
+                    slot.style.backgroundImage = '';
+                    slot.innerHTML = '';
+                });
+                
+                collectedPieces.forEach(pieceId => {
+                    const slot = document.querySelector(`.puzzle-slot[data-piece-id="${pieceId}"]`);
+                    if (slot) {
+                        slot.style.backgroundImage = `url(${IMAGE_PATHS[selectedImage - 1]})`;
+                        
+                        // --- 修改点 3: 更新背景定位算法以适应2x3网格 ---
+                        const puzzleWidth = 300;
+                        const puzzleHeight = 400;
+                        const columns = 2;
+                        const rows = 3;
+                        
+                        const row = Math.floor(pieceId / columns); // 计算行号
+                        const col = pieceId % columns;             // 计算列号
+                        
+                        const pieceWidth = puzzleWidth / columns;
+                        const pieceHeight = puzzleHeight / rows;
+
+                        slot.style.backgroundPosition = `-${col * pieceWidth}px -${row * pieceHeight}px`;
+                    }
+                });
+                
+                updateAllImageOptions();
+            }
+            
+            function updateAllImageOptions() {
+                for (let i = 1; i <= IMAGE_COUNT; i++) {
+                    const option = document.querySelector(`.image-option[data-image-id="${i}"]`);
+                    const img = option.querySelector('img');
+                    const completedBadge = option.querySelector('.completed-badge');
+                    
+                    if (completedBadge) {
+                        completedBadge.remove();
+                    }
+                    
+                    if (completedImages.includes(i)) {
+                        option.classList.add('completed');
+                        const badge = document.createElement('div');
+                        badge.className = 'completed-badge';
+                        badge.textContent = '已完成';
+                        option.appendChild(badge);
+                    } else {
+                        option.classList.remove('completed');
+                    }
+                    
+                    const collectedCount = collectedPiecesPerImage[i-1]?.length || 0;
+                    if (collectedCount > 0) {
+                        const blurAmount = Math.max(0, 15 - (collectedCount * (15 / PUZZLE_PIECES)));
+                        img.style.filter = `blur(${blurAmount}px)`;
+                    } else {
+                        img.style.filter = 'blur(15px)';
+                    }
+                }
+            }
+            
+            function drawLottery() {
+                if (!selectedImage) {
+                    showResult('请先选择一张图片！');
+                    return;
+                }
+                
+                if (isPreviewMode) {
+                    showResult('此图片已完成，不能再次抽奖');
+                    return;
+                }
+                
+                if (availablePieces.length === 0) {
+                    showResult('恭喜！你已经收集齐所有拼图块！');
+                    drawButton.disabled = true;
+                    
+                    if (!completedImages.includes(selectedImage)) {
+                        completedImages.push(selectedImage);
+                        updateAllImageOptions();
+                        updateStats();
+                    }
+                    return;
+                }
+                
+                const randomIndex = Math.floor(Math.random() * availablePieces.length);
+                const pieceId = availablePieces[randomIndex];
+                
+                availablePieces.splice(randomIndex, 1);
+                
+                collectedPieces.push(pieceId);
+                collectedPiecesPerImage[selectedImage - 1] = collectedPieces;
+                
+                updatePuzzleDisplay();
+                updateStats();
+                
+                showResult(`恭喜！你抽中了拼图块 ${pieceId + 1}！`);
+                
+                if (availablePieces.length === 0) {
+                    showResult('太棒了！你已经收集完所有拼图块！拼图完成！');
+                    drawButton.disabled = true;
+                    
+                    if (!completedImages.includes(selectedImage)) {
+                        completedImages.push(selectedImage);
+                        updateAllImageOptions();
+                        updateStats();
+                    }
+                }
+            }
+            
+            function exportProgress() {
+                if (!userNickname) {
+                    showResult('请先填写昵称再导出进度！');
+                    nicknameInput.focus();
+                    return;
+                }
+                
+                const gameState = {
+                    version: SAVE_VERSION,
+                    selectedImage: selectedImage,
+                    collectedPiecesPerImage: collectedPiecesPerImage,
+                    completedImages: completedImages,
+                    nickname: userNickname,
+                    timestamp: new Date().toISOString()
+                };
+                
+                const dataStr = JSON.stringify(gameState);
+                const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+                
+                const exportFileDefaultName = `${userNickname}_拼图游戏进度.json`;
+                
+                const linkElement = document.createElement('a');
+                linkElement.setAttribute('href', dataUri);
+                linkElement.setAttribute('download', exportFileDefaultName);
+                linkElement.click();
+                
+                showResult('进度已导出成功！');
+            }
+            
+            function importProgress(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const gameState = JSON.parse(e.target.result);
+                        
+                        if (!gameState.version || gameState.version !== SAVE_VERSION) {
+                            showResult('导入失败：不兼容的进度文件版本');
+                            return;
+                        }
+                        
+                        if (!Array.isArray(gameState.collectedPiecesPerImage) || 
+                            gameState.collectedPiecesPerImage.length !== IMAGE_COUNT) {
+                            showResult('导入失败：进度文件格式错误');
+                            return;
+                        }
+                        
+                        collectedPiecesPerImage = gameState.collectedPiecesPerImage;
+                        completedImages = gameState.completedImages || [];
+                        
+                        if (gameState.nickname) {
+                            userNickname = gameState.nickname;
+                            nicknameInput.value = userNickname;
+                        }
+                        
+                        if (gameState.selectedImage) {
+                            selectImage(gameState.selectedImage);
+                        } else {
+                            updateAllImageOptions();
+                            updateStats();
+                        }
+                        showResult('进度已导入成功！');
+                        
+                        importFile.value = '';
+                    } catch (error) {
+                        console.error('导入进度失败:', error);
+                        showResult('导入失败：文件格式错误或已损坏');
+                    }
+                };
+                reader.readAsText(file);
+            }
+            
+            function showResult(message) {
+                resultDisplay.textContent = message;
+                resultDisplay.style.display = 'block';
+            }
+            
+            function updateStats() {
+                completedCountEl.textContent = completedImages.length;
+                if(selectedImage && completedImages.includes(selectedImage)){
+                    remainingPiecesEl.textContent = 0;
+                } else {
+                    remainingPiecesEl.textContent = availablePieces.length;
+                }
+            }
+            
+            function restartGame() {
+                if(confirm('确定要重新开始游戏吗？所有进度都将被清空。')){
+                    initGame();
+                    showResult('游戏已重置，请选择一张图片开始抽奖！');
+                }
+            }
+            
+            initGame();
+        });
+    </script>
+</body>
+</html>
